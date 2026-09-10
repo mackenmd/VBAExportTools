@@ -10,24 +10,22 @@
 setlocal enableextensions enabledelayedexpansion
 
 if "%~1"=="" (
-    echo ❌ ERROR: Missing source VBA file path (.OTM or .XLSM).
-    echo Usage: ExportVBA "C:\path\to\VbaProject.OTM" "D:\ExportFolder" [commit message|nocommit]
+    echo ❌ ERROR: Missing source VBA file path (.OTM, .XLSM, or .XLAM).
+    echo Usage: ExportVBA "C:\path\to\VbaProject.OTM" "D:\ExportFolder" ["commit message"^|NOCOMMIT]
     pause
     exit /b 1
 )
 
 if "%~2"=="" (
     echo ❌ ERROR: Missing destination export folder.
-    echo Usage: ExportVBA "C:\path\to\VbaProject.OTM" "D:\ExportFolder" [commit message|nocommit]
+    echo Usage: ExportVBA "C:\path\to\VbaProject.OTM" "D:\ExportFolder" ["commit message"^|NOCOMMIT]
     pause
     exit /b 1
 )
 
 set "SRC_PATH=%~1"
 set "DEST_DIR=%~2"
-shift
-shift
-set "COMMIT_MSG=%*"
+set "COMMIT_MSG=%~3"
 
 where python >nul 2>nul
 if errorlevel 1 (
@@ -37,5 +35,9 @@ if errorlevel 1 (
 )
 
 cd /d "%~dp0"
-python "export_vba_code.py" "%SRC_PATH%" "%DEST_DIR%" %COMMIT_MSG%
+if "%COMMIT_MSG%"=="" (
+    python "export_vba_code.py" "%SRC_PATH%" "%DEST_DIR%"
+) else (
+    python "export_vba_code.py" "%SRC_PATH%" "%DEST_DIR%" "%COMMIT_MSG%"
+)
 pause

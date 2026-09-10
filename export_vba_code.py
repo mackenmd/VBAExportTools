@@ -28,6 +28,10 @@ def export_vba_code_internal():
         print("❌ Error: Source VBA file must have a .otm, .xlsm, or .xlam extension.")
         return
 
+    if os.path.exists(destination_dir) and not os.path.isdir(destination_dir):
+        print(f"❌ Error: Destination path exists but is not a directory: {destination_dir}")
+        return
+
     # Determine commit message or NOCOMMIT flag from remaining command-line args
     if len(sys.argv) > 3:
         commit_msg = " ".join(sys.argv[3:])
@@ -85,7 +89,7 @@ def export_vba_code_internal():
                 print("🚫 NOCOMMIT flag detected — skipping git commit.\n")
 
         else:
-            print("⚠️ No VBA macros found in the OTM file.")
+            print("⚠️ No VBA macros found in the source file.")
             vbaparser.close()
 
     except Exception as e:
