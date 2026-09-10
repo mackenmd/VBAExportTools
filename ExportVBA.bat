@@ -4,21 +4,29 @@
 ::  Universal VBA exporter for Outlook (.OTM) and Excel (.xlsm/.xlam)
 :: --------------------------------------------------------------------
 ::  Usage:
-::     ExportVBA "<source file>" "<destination folder>" [commit message|nocommit]
+::     ExportVBA "<source file>" "<destination folder>" ["commit message" or NOCOMMIT]
 :: ====================================================================
 
 setlocal enableextensions enabledelayedexpansion
 
 if "%~1"=="" (
-    echo ❌ ERROR: Missing source VBA file path (.OTM, .XLSM, or .XLAM).
-    echo Usage: ExportVBA "C:\path\to\VbaProject.OTM" "D:\ExportFolder" ["commit message"^|NOCOMMIT]
+    echo ❌ ERROR: Missing source VBA file path. Supported extensions: .OTM, .XLSM, or .XLAM.
+    echo Usage: ExportVBA "C:\path\to\VbaProject.OTM" "D:\ExportFolder" ["commit message" or NOCOMMIT]
     pause
     exit /b 1
 )
 
 if "%~2"=="" (
     echo ❌ ERROR: Missing destination export folder.
-    echo Usage: ExportVBA "C:\path\to\VbaProject.OTM" "D:\ExportFolder" ["commit message"^|NOCOMMIT]
+    echo Usage: ExportVBA "C:\path\to\VbaProject.OTM" "D:\ExportFolder" ["commit message" or NOCOMMIT]
+    pause
+    exit /b 1
+)
+
+if not "%4"=="" (
+    echo ❌ ERROR: Too many arguments supplied. The optional commit message must be a single argument.
+    echo You may have forgotten quotation marks around a multi-word commit message.
+    echo Usage: ExportVBA "C:\path\to\VbaProject.OTM" "D:\ExportFolder" ["commit message" or NOCOMMIT]
     pause
     exit /b 1
 )
