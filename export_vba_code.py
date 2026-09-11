@@ -21,9 +21,6 @@ class _ExtractionErrors(logging.Handler):
 
 
 def _stage_and_replace(source_path, destination_dir):
-    # These are the filename extensions assigned by oletools to VBA modules.
-    # Keep the entire family so obsolete types disappear even if absent now.
-    module_extensions = {".bas", ".cls", ".frm", ".vba"}
     destination_dir = os.path.abspath(destination_dir)
     staging = None
     backup = None
@@ -57,10 +54,9 @@ def _stage_and_replace(source_path, destination_dir):
             if (not filename or any(c in filename for c in '<>:"/\\|?*')
                     or any(ord(c) < 32 for c in filename)
                     or filename.endswith((" ", "."))
-                    or os.path.splitext(filename)[1].lower() not in module_extensions
                     or filename.split(".")[0].upper() in
                     {"CON", "PRN", "AUX", "NUL", *(f"COM{i}" for i in range(1, 10)), *(f"LPT{i}" for i in range(1, 10))}):
-                raise ValueError(f"Unsafe or unsupported VBA module filename: {filename!r}")
+                raise ValueError(f"Unsafe VBA module filename: {filename!r}")
             if filename.casefold() in seen:
                 raise ValueError(f"Duplicate VBA module filename: {filename}")
             seen.add(filename.casefold())
@@ -74,14 +70,12 @@ def _stage_and_replace(source_path, destination_dir):
         if os.path.isdir(destination_dir):
             with os.scandir(destination_dir) as entries:
                 for entry in entries:
-                    if os.path.splitext(entry.name)[1].lower() not in module_extensions:
-                        continue
                     if entry.is_dir():
                         if entry.name.casefold() in seen:
                             raise ValueError(f"Module conflicts with a destination subdirectory: {entry.name}")
                         continue
                     if entry.is_symlink() or not entry.is_file(follow_symlinks=False):
-                        raise ValueError(f"Refusing to replace a linked or special module file: {entry.name}")
+                        raise ValueError(f"Refusing to replace a linked or special destination file: {entry.name}")
                     existing.append(entry.name)
 
         for filename in set(existing + exported_files):
