@@ -6,9 +6,9 @@ suitable for Git and other version-control systems.
 ## Status
 
 Outlook `.OTM` exporting has been tested and verified against a real Outlook
-VBA project. Excel `.xlsm` and `.xlam` support is implemented, but has not yet
-been verified in real-world use. Microsoft Access VBA export is planned future
-work and is not currently supported.
+VBA project. Excel `.xlsm` and `.xlam` exporting has also been tested and
+verified. Microsoft Access VBA export is planned future work and is not
+currently supported.
 
 ## Usage
 
@@ -74,4 +74,4 @@ such as `VBA_P-code.txt`, remain excluded normally.
 - `oletools`
 - Git, when automatic Git commits are desired
 
-`pywin32` is not a requirement yet; Excel testing is still pending.
+`pywin32` is not a requirement.
