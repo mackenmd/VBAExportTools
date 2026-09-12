@@ -9,6 +9,29 @@
 
 setlocal enableextensions enabledelayedexpansion
 
+if not "%~1"=="" goto arguments_supplied
+if not "%~2"=="" goto arguments_supplied
+if not "%1"=="" goto arguments_supplied
+echo ExportVBA - Export VBA modules from Outlook and Excel files.
+echo.
+echo Usage:
+echo   ExportVBA "source-file" "destination-folder" "commit-message|NOCOMMIT"
+echo.
+echo Example:
+echo   ExportVBA "C:\MyWork\Golf.xlsm" "C:\MyWork\Golf-Modules" "Update email generation"
+echo.
+echo source-file:
+echo   Outlook or Excel file containing VBA. Supported: .OTM, .XLSM, .XLAM.
+echo.
+echo destination-folder:
+echo   Folder where exported VBA files will be stored.
+echo.
+echo commit-message^|NOCOMMIT:
+echo   Git commit message, or NOCOMMIT to export without committing.
+exit /b 0
+
+:arguments_supplied
+
 if "%~1"=="" (
     echo ❌ ERROR: Missing source VBA file path. Supported extensions: .OTM, .XLSM, or .XLAM.
     echo Usage: ExportVBA "C:\path\to\VbaProject.OTM" "D:\ExportFolder" ["commit message" or NOCOMMIT]
