@@ -1,14 +1,16 @@
 """Experimental Microsoft Access object exporter using Access automation."""
 
 import os
+import shutil
 import subprocess
 import sys
+import tempfile
 from pathlib import Path
 
 
 POWERSHELL_SCRIPT = r'''$ErrorActionPreference = 'Stop'
 
-$sourcePath = [Environment]::GetEnvironmentVariable('VBAEXPORT_ACCESS_SOURCE')
+$workingCopyPath = [Environment]::GetEnvironmentVariable('VBAEXPORT_ACCESS_WORKING_COPY')
 $outputPath = [Environment]::GetEnvironmentVariable('VBAEXPORT_ACCESS_OUTPUT')
 $access = $null
 
@@ -104,10 +106,10 @@ function Export-Queries([string] $accessDirectory, [string] $sqlDirectory) {
 }
 
 try {
-    Write-Output "Opening Access database: $sourcePath"
+    Write-Output "Opening temporary Access database copy: $workingCopyPath"
     $access = New-Object -ComObject Access.Application
     # Open shared rather than exclusive. Access exposes no read-only parameter here.
-    $access.OpenCurrentDatabase($sourcePath, $false)
+    $access.OpenCurrentDatabase($workingCopyPath, $false)
 
     $modules = Export-Objects $access.CurrentProject.AllModules 5 (Join-Path $outputPath 'Modules') '.bas' 'module'
     $queries = Export-Queries (Join-Path $outputPath 'Queries\Access') (Join-Path $outputPath 'Queries\SQL')
@@ -142,19 +144,40 @@ def main():
         print('Error: Access database source must have a .accdb or .mdb extension.')
         return 1
 
-    for directory in (output / 'Modules', output / 'Queries' / 'Access',
-                      output / 'Queries' / 'SQL', output / 'Macros'):
-        directory.mkdir(parents=True, exist_ok=True)
+    lock_extension = '.laccdb' if source.suffix.casefold() == '.accdb' else '.ldb'
+    lock_file = source.with_suffix(lock_extension)
+    if lock_file.exists():
+        print('Error: Access database appears to be open; close it before exporting.')
+        return 1
 
-    environment = os.environ.copy()
-    environment['VBAEXPORT_ACCESS_SOURCE'] = str(source.resolve())
-    environment['VBAEXPORT_ACCESS_OUTPUT'] = str(output.resolve())
-    result = subprocess.run(
-        ['powershell.exe', '-NoProfile', '-NonInteractive', '-Command', POWERSHELL_SCRIPT],
-        env=environment,
-        text=True,
-        capture_output=True,
-    )
+    try:
+        with tempfile.TemporaryDirectory(prefix='vbaexport-access-') as temporary_directory:
+            temporary_copy = Path(temporary_directory) / source.name
+            try:
+                shutil.copy2(source, temporary_copy)
+                if (not temporary_copy.is_file() or
+                        temporary_copy.stat().st_size != source.stat().st_size):
+                    raise OSError('temporary copy does not match the source file size')
+            except OSError as error:
+                print(f'Error: Unable to create or verify temporary Access database copy: {error}')
+                return 1
+
+            for directory in (output / 'Modules', output / 'Queries' / 'Access',
+                              output / 'Queries' / 'SQL', output / 'Macros'):
+                directory.mkdir(parents=True, exist_ok=True)
+
+            environment = os.environ.copy()
+            environment['VBAEXPORT_ACCESS_WORKING_COPY'] = str(temporary_copy)
+            environment['VBAEXPORT_ACCESS_OUTPUT'] = str(output.resolve())
+            result = subprocess.run(
+                ['powershell.exe', '-NoProfile', '-NonInteractive', '-Command', POWERSHELL_SCRIPT],
+                env=environment,
+                text=True,
+                capture_output=True,
+            )
+    except OSError as error:
+        print(f'Error: Unable to create temporary Access database working directory: {error}')
+        return 1
     if result.stdout:
         print(result.stdout, end='')
     if result.stderr:
