@@ -137,9 +137,9 @@ def export_vba_code_internal():
     sorts modules alphabetically, summarizes export count,
     and optionally commits to Git.
     """
-    if len(sys.argv) < 3:
+    if len(sys.argv) not in {4, 5}:
         print("❌ Error: Missing source VBA file path or destination export folder.")
-        print("Usage: export_vba_code.py <source file> <destination folder> [commit message|nocommit]")
+        print("Usage: export_vba_code.py <source file> <destination folder> <commit message|nocommit> [-init]")
         return
 
     source_path = sys.argv[1]
@@ -153,17 +153,35 @@ def export_vba_code_internal():
         print("❌ Error: Source VBA file must have a .otm, .xlsm, or .xlam extension.")
         return
 
-    if os.path.exists(destination_dir) and not os.path.isdir(destination_dir):
+    initialize_repository = len(sys.argv) == 5
+    if initialize_repository and sys.argv[4].casefold() != "-init":
+        print(f"Error: Unknown option: {sys.argv[4]}. The only supported option is -init.")
+        return
+
+    if initialize_repository and os.path.exists(destination_dir):
+        print(f"Error: -init requires a destination that does not already exist: {destination_dir}")
+        return
+
+    if not initialize_repository and not os.path.exists(destination_dir):
+        print(f"Error: Destination directory must already exist unless -init is supplied: {destination_dir}")
+        return
+
+    if not initialize_repository and os.path.exists(destination_dir) and not os.path.isdir(destination_dir):
         print(f"❌ Error: Destination path exists but is not a directory: {destination_dir}")
         return
 
     # Determine commit message or NOCOMMIT flag from remaining command-line args
-    if len(sys.argv) > 3:
-        commit_msg = " ".join(sys.argv[3:])
-    else:
-        commit_msg = f"Auto-export VBA {datetime.now():%Y-%m-%d %H:%M}"
+    commit_msg = sys.argv[3]
 
     no_commit = commit_msg.strip().lower() == "nocommit"
+
+    if initialize_repository:
+        try:
+            os.mkdir(destination_dir)
+            subprocess.run(["git", "init"], cwd=destination_dir, check=True)
+        except (OSError, subprocess.CalledProcessError) as error:
+            print(f"Error: Could not create or initialize the destination repository: {error}")
+            return
 
     try:
         exported_files = _stage_and_replace(source_path, destination_dir)
